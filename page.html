@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Analytics | Advanced Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@3.0.4/build/global/luxon.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon@1.3.1"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --tertiary: #8b5cf6;
+            --dark: #0f172a;
+            --darker: #020617;
+            --light: #f8fafc;
+            --gray: #94a3b8;
+            --glass: rgba(255, 255, 255, 0.08);
+            --glass-border: rgba(255, 255, 255, 0.18);
+            --transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.3);
+            --radius: 16px;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--darker) 0%, var(--dark) 100%);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(16, 185, 129, 0.15) 0%, transparent 20%),
+                radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 30%);
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        header {
+            padding: 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .logo i {
+            color: var(--primary);
+            background: rgba(99, 102, 241, 0.2);
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--light);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 0.5rem 0;
+            transition: var(--transition);
+        }
+
+        .nav-links a:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--primary);
+            transition: var(--transition);
+        }
+
+        .nav-links a:hover:after {
+            width: 100%;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .search-bar {
+            position: relative;
+        }
+
+        .search-bar input {
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+            color: var(--light);
+            padding: 0.8rem 1.5rem 0.8rem 3rem;
+            border-radius: 50px;
+            font-size: 1rem;
+            width: 250px;
+            transition: var(--transition);
+        }
+
+        .search-bar input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3);
+        }
+
+        .search-bar i {
+            position: absolute;
+            left: 1.2rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--glass);
+            padding: 0.5rem 1rem 0.5rem 0.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .user-profile:hover {
+            background: rgba(99, 102, 241, 0.2);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(45deg, var(--primary), var(--tertiary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        /* Dashboard Layout */
+        .dashboard {
+            padding: 2rem 0;
+        }
+
+        .dashboard-header {
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-block;
+        }
+
+        .dashboard-header p {
+            color: var(--gray);
+            max-width: 700px;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .card {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: var(--radius);
+            border: 1px solid var(--glass-border);
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(99, 102, 241, 0.4);
+        }
+
+        .card-header {
+            padding: 1.5rem 1.5rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .card-title i {
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            background: rgba(99, 102, 241, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .card-actions button {
+            background: transparent;
+            border: none;
+            color: var(--gray);
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .card-actions button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--light);
+        }
+
+        .card-content {
+            padding: 1.5rem;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 1rem 0;
+        }
+
+        .metric-trend {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .trend-up {
+            color: var(--secondary);
+        }
+
+        .trend-down {
+            color: #ef4444;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        .large-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .data-history {
+            background: var(--glass);
+            backdrop-filter: blur(12px);
+            border-radius: var(--radius);
+            border: 1px solid var(--glass-border);
+            padding: 1.5rem;
+            box-shadow: var(--shadow);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .history-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .history-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .history-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+            transition: var(--transition);
+        }
+
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .history-item:last-child {
+            border-bottom: none;
+        }
+
+        .history-metric {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .history-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(99, 102, 241, 0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+        }
+
+        .history-values {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .old-value {
+            color: var(--gray);
+            text-decoration: line-through;
+        }
+
+        .new-value {
+            font-weight: 600;
+        }
+
+        .history-time {
+            color: var(--gray);
+            font-size: 0.9rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            color: var(--gray);
+            font-size: 0.9rem;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 2rem;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+
+        .card {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .metric-update {
+            animation: pulse 0.5s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .large-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .search-bar input {
+                width: 180px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <i class="fas fa-atom"></i>
+                <span>Quantum Analytics</span>
+            </div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="#"><i class="fas fa-home"></i> Dashboard</a></li>
+                    <li><a href="#"><i class="fas fa-chart-network"></i> Analytics</a></li>
+                    <li><a href="#"><i class="fas fa-database"></i> Data Sources</a></li>
+                    <li><a href="#"><i class="fas fa-cube"></i> Modules</a></li>
+                    <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                </ul>
+            </nav>
+            <div class="header-controls">
+                <div class="search-bar">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search metrics...">
+                </div>
+                <div class="user-profile">
+                    <div class="avatar">JD</div>
+                    <div>John Developer</div>
+                    <i class="fas fa-chevron-down"></i>
+                </div>
+            </div>
+        </header>
+        
+        <div class="dashboard">
+            <div class="dashboard-header">
+                <h1>Advanced Analytics Dashboard</h1>
+                <p>Real-time insights with historical comparisons and predictive analytics</p>
+            </div>
+            
+            <div class="dashboard-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-users"></i>
+                            <span>Active Users</span>
+                        </div>
+                        <div class="card-actions">
+                            <button><i class="fas fa-expand"></i></button>
+                            <button><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="metric-value" id="active-users">24,812</div>
+                        <div class="metric-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>12.4% from last month</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="usersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-shopping-cart"></i>
+                            <span>Daily Orders</span>
+                        </div>
+                        <div class="card-actions">
+                            <button><i class="fas fa-expand"></i></button>
+                            <button><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="metric-value" id="daily-orders">1,248</div>
+                        <div class="metric-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>5.3% from yesterday</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ordersChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-dollar-sign"></i>
+                            <span>Revenue</span>
+                        </div>
+                        <div class="card-actions">
+                            <button><i class="fas fa-expand"></i></button>
+                            <button><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="metric-value" id="revenue">$62,415</div>
+                        <div class="metric-trend trend-down">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>3.2% from last week</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-percentage"></i>
+                            <span>Conversion Rate</span>
+                        </div>
+                        <div class="card-actions">
+                            <button><i class="fas fa-expand"></i></button>
+                            <button><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="metric-value" id="conversion">78.6%</div>
+                        <div class="metric-trend trend-up">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>8.7% from last quarter</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="conversionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="large-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i class="fas fa-chart-line"></i>
+                            <span>Performance Overview</span>
+                        </div>
+                        <div class="card-actions">
+                            <button><i class="fas fa-expand"></i></button>
+                            <button><i class="fas fa-ellipsis-v"></i></button>
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <div class="chart-container">
+                            <canvas id="performanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="data-history">
+                    <div class="history-header">
+                        <div class="history-title">Recent Data Updates</div>
+                        <div class="history-controls">
+                            <button class="btn"><i class="fas fa-sync"></i></button>
+                        </div>
+                    </div>
+                    <div class="history-list" id="history-list">
+                        <!-- History items will be added here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>© 2023 Quantum Analytics | Advanced Data Visualization Platform</p>
+            <p>Data updates every 10 seconds | Last updated: <span id="update-time"></span></p>
+        </footer>
+    </div>
+
+    <script>
+        // Initialize charts
+        const charts = {};
+        let historyLog = [];
+        
+        // Format numbers
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toString();
+        }
+        
+        // Generate random data with realistic trends
+        function generateData(length, min, max, trend) {
+            const data = [];
+            let value = (min + max) / 2;
+            
+            for (let i = 0; i < length; i++) {
+                // Add trend
+                value += trend * (Math.random() * 0.5 + 0.5);
+                
+                // Add random fluctuation
+                value += (Math.random() - 0.5) * (max - min) * 0.1;
+                
+                // Ensure value stays within bounds
+                value = Math.max(min, Math.min(max, value));
+                
+                data.push(Math.round(value));
+            }
+            
+            return data;
+        }
+        
+        // Create charts
+        function initCharts() {
+            const now = luxon.DateTime.now();
+            const labels = Array.from({length: 12}, (_, i) => 
+                now.minus({months: 11 - i}).toFormat('MMM yy')
+            );
+            
+            // Active Users Chart
+            charts.usersChart = new Chart(
+                document.getElementById('usersChart').getContext('2d'),
+                createChartConfig('line', labels, 
+                    generateData(12, 15000, 30000, 1200),
+                    'rgba(99, 102, 241, 0.6)'
+                )
+            );
+            
+            // Daily Orders Chart
+            charts.ordersChart = new Chart(
+                document.getElementById('ordersChart').getContext('2d'),
+                createChartConfig('bar', labels, 
+                    generateData(12, 800, 1500, 50),
+                    'rgba(16, 185, 129, 0.7)'
+                )
+            );
+            
+            // Revenue Chart
+            charts.revenueChart = new Chart(
+                document.getElementById('revenueChart').getContext('2d'),
+                createChartConfig('line', labels, 
+                    generateData(12, 40000, 70000, 2500),
+                    'rgba(139, 92, 246, 0.6)'
+                )
+            );
+            
+            // Conversion Rate Chart
+            charts.conversionChart = new Chart(
+                document.getElementById('conversionChart').getContext('2d'),
+                createChartConfig('line', labels, 
+                    generateData(12, 65, 85, 1.5).map(v => v/100),
+                    'rgba(245, 158, 11, 0.7)'
+                )
+            );
+            
+            // Performance Overview Chart
+            charts.performanceChart = new Chart(
+                document.getElementById('performanceChart').getContext('2d'),
+                {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Active Users',
+                                data: generateData(12, 15000, 30000, 1200),
+                                borderColor: '#6366f1',
+                                backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            },
+                            {
+                                label: 'Revenue',
+                                data: generateData(12, 40000, 70000, 2500),
+                                borderColor: '#8b5cf6',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                labels: {
+                                    color: '#f8fafc'
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: false,
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: '#94a3b8',
+                                    callback: function(value) {
+                                        return '$' + value;
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(255, 255, 255, 0.05)'
+                                },
+                                ticks: {
+                                    color: '#94a3b8'
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+        }
+        
+        // Create chart config
+        function createChartConfig(type, labels, data, bgColor) {
+            return {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: bgColor,
+                        borderColor: bgColor.replace('0.6', '1').replace('0.7', '1'),
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        tension: 0.4,
+                        fill: type === 'line'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            display: false
+                        },
+                        x: {
+                            display: false
+                        }
+                    }
+                }
+            };
+        }
+        
+        // Update metrics with new data
+        function updateMetrics() {
+            // Update time
+            const now = new Date();
+            document.getElementById('update-time').textContent = 
+                now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            // Get current values
+            const metrics = [
+                { id: 'active-users', name: 'Active Users', icon: 'users', value: parseInt(document.getElementById('active-users').textContent.replace(/,/g, '')) },
+                { id: 'daily-orders', name: 'Daily Orders', icon: 'shopping-cart', value: parseInt(document.getElementById('daily-orders').textContent.replace(/,/g, '')) },
+                { id: 'revenue', name: 'Revenue', icon: 'dollar-sign', value: parseInt(document.getElementById('revenue').textContent.replace(/[$,]/g, '')) },
+                { id: 'conversion', name: 'Conversion Rate', icon: 'percentage', value: parseFloat(document.getElementById('conversion').textContent.replace('%', '')) }
+            ];
+            
+            // Update each metric
+            metrics.forEach(metric => {
+                const element = document.getElementById(metric.id);
+                const oldValue = metric.value;
+                let newValue;
+                
+                // Generate new value based on metric
+                if (metric.id === 'active-users') {
+                    newValue = oldValue + Math.floor(Math.random() * 200 - 100);
+                    newValue = Math.max(24000, Math.min(26000, newValue));
+                } else if (metric.id === 'daily-orders') {
+                    newValue = oldValue + Math.floor(Math.random() * 40 - 20);
+                    newValue = Math.max(1200, Math.min(1400, newValue));
+                } else if (metric.id === 'revenue') {
+                    newValue = oldValue + Math.floor(Math.random() * 2000 - 1000);
+                    newValue = Math.max(60000, Math.min(70000, newValue));
+                } else {
+                    newValue = oldValue + (Math.random() * 0.8 - 0.4);
+                    newValue = Math.max(77, Math.min(82, newValue));
+                }
+                
+                // Format value for display
+                let displayValue;
+                if (metric.id === 'revenue') {
+                    displayValue = '$' + newValue.toLocaleString();
+                } else if (metric.id === 'conversion') {
+                    displayValue = newValue.toFixed(1) + '%';
+                } else {
+                    displayValue = newValue.toLocaleString();
+                }
+                
+                // Add to history
+                historyLog.unshift({
+                    metric: metric.name,
+                    icon: metric.icon,
+                    oldValue: metric.id === 'conversion' ? oldValue.toFixed(1) + '%' : 
+                             metric.id === 'revenue' ? '$' + oldValue.toLocaleString() : 
+                             oldValue.toLocaleString(),
+                    newValue: displayValue,
+                    time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                });
+                
+                // Keep only last 10 items
+                if (historyLog.length > 10) historyLog.pop();
+                
+                // Update UI
+                element.textContent = displayValue;
+                element.classList.add('metric-update');
+                setTimeout(() => element.classList.remove('metric-update'), 500);
+            });
+            
+            // Update history list
+            updateHistoryList();
+        }
+        
+        // Update history list UI
+        function updateHistoryList() {
+            const historyList = document.getElementById('history-list');
+            historyList.innerHTML = '';
+            
+            historyLog.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                historyItem.innerHTML = `
+                    <div class="history-metric">
+                        <div class="history-icon">
+                            <i class="fas fa-${item.icon}"></i>
+                        </div>
+                        <div>${item.metric}</div>
+                    </div>
+                    <div class="history-values">
+                        <div class="old-value">${item.oldValue}</div>
+                        <i class="fas fa-arrow-right"></i>
+                        <div class="new-value">${item.newValue}</div>
+                    </div>
+                    <div class="history-time">${item.time}</div>
+                `;
+                historyList.appendChild(historyItem);
+            });
+        }
+        
+        // Initialize everything
+        document.addEventListener('DOMContentLoaded', () => {
+            initCharts();
+            updateMetrics();
+            
+            // Update metrics every 10 seconds
+            setInterval(updateMetrics, 10000);
+            
+            // Add some initial history
+            const now = new Date();
+            historyLog = [
+                {
+                    metric: 'Active Users',
+                    icon: 'users',
+                    oldValue: '24,520',
+                    newValue: '24,812',
+                    time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                },
+                {
+                    metric: 'Daily Orders',
+                    icon: 'shopping-cart',
+                    oldValue: '1,210',
+                    newValue: '1,248',
+                    time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                },
+                {
+                    metric: 'Revenue',
+                    icon: 'dollar-sign',
+                    oldValue: '$61,420',
+                    newValue: '$62,415',
+                    time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                },
+                {
+                    metric: 'Conversion Rate',
+                    icon: 'percentage',
+                    oldValue: '77.8%',
+                    newValue: '78.6%',
+                    time: now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+                }
+            ];
+            updateHistoryList();
+        });
+    </script>
+</body>
+</html>
